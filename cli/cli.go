@@ -5,6 +5,8 @@ import (
 	"os"
 	"syscall"
 
+	"time"
+
 	"github.com/atotto/clipboard"
 
 	"perkbox/crypto"
@@ -20,7 +22,7 @@ func Run(args []string) {
 		cmdAdd()
 	case "get":
 		if len(args) < 2 {
-			fmt.Println("Uso: perkbox get <servicio>")
+			fmt.Println("Use: perkbox get <service>")
 			os.Exit(1)
 		}
 		cmdGet(args[1])
@@ -28,12 +30,12 @@ func Run(args []string) {
 		cmdList()
 	case "delete":
 		if len(args) < 2 {
-			fmt.Println("Uso: perkbox delete <servicio>")
+			fmt.Println("Use: perkbox delete <service>")
 			os.Exit(1)
 		}
 		cmdDelete(args[1])
 	default:
-		fmt.Printf("Comando desconocido: %s\n", args[0])
+		fmt.Printf("Unkown command: %s\n", args[0])
 		os.Exit(1)
 	}
 }
@@ -48,24 +50,24 @@ func readPassword(prompt string) string {
 func cmdAdd() {
 	var service, username string
 
-	fmt.Print("Servicio (ej: github.com): ")
+	fmt.Print("Service (ej: github.com): ")
 	fmt.Scanln(&service)
 
-	fmt.Print("Usuario: ")
+	fmt.Print("User: ")
 	fmt.Scanln(&username)
 
-	password := readPassword("Contraseña a guardar: ")
-	masterPwd := readPassword("Tu master password: ")
+	password := readPassword("Password: ")
+	masterPwd := readPassword("Master password: ")
 
 	encrypted, err := crypto.Encrypt(password, masterPwd)
 	if err != nil {
-		fmt.Println("Error encriptando:", err)
+		fmt.Println("Error encrypting:", err)
 		os.Exit(1)
 	}
 
 	entries, err := storage.LoadAll()
 	if err != nil {
-		fmt.Println("Error cargando datos:", err)
+		fmt.Println("Error loading data:", err)
 		os.Exit(1)
 	}
 
@@ -76,11 +78,11 @@ func cmdAdd() {
 	})
 
 	if err := storage.SaveAll(entries); err != nil {
-		fmt.Println("Error guardando:", err)
+		fmt.Println("Error saving:", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✓ Contraseña para %s guardada!\n", service)
+	fmt.Printf("%s's password saved \n", service)
 }
 
 func cmdGet(service string) {
@@ -88,23 +90,25 @@ func cmdGet(service string) {
 
 	entries, err := storage.FindByService(service)
 	if err != nil || len(entries) == 0 {
-		fmt.Printf("No se encontró nada para: %s\n", service)
+		fmt.Printf(" %s not found\n", service)
 		return
 	}
 
 	for _, e := range entries {
 		pwd, err := crypto.Decrypt(e.Password, masterPwd)
 		if err != nil {
-			fmt.Println("Error: master password incorrecta")
+			fmt.Println("Error: Wrong Master Password")
 			return
 		}
-		fmt.Printf("\nServicio:  %s\nUsuario:   %s\n", e.Service, e.Username)
+		fmt.Printf("\nService:  %s\nUser:   %s\n", e.Service, e.Username)
 		copiedPass := clipboard.WriteAll(pwd)
 		if copiedPass != nil {
-			fmt.Printf("No se pudo copiar su contraseña")
+			fmt.Println("Your password couldn't be copied")
 			return
 		}
-		fmt.Printf("Password copiada en su clipboard")
+		fmt.Println("Password copied to your clipboard\nYou have 10 seconds to use it")
+		time.Sleep(10 * time.Second)
+		clipboard.WriteAll("Timeout: Be Quicker")
 	}
 }
 
@@ -116,11 +120,11 @@ func cmdList() {
 	}
 
 	if len(entries) == 0 {
-		fmt.Println("No hay contraseñas guardadas.")
+		fmt.Println("No saved passwords.")
 		return
 	}
 
-	fmt.Println("\n=== Tus servicios ===")
+	fmt.Println("\n=== Your services ===")
 	for _, e := range entries {
 		fmt.Printf("• %s (%s)\n", e.Service, e.Username)
 	}
@@ -144,10 +148,10 @@ func cmdDelete(service string) {
 	}
 
 	if deleted == 0 {
-		fmt.Printf("No se encontró: %s\n", service)
+		fmt.Printf("Couldn't find: %s\n", service)
 		return
 	}
 
 	storage.SaveAll(filtered)
-	fmt.Printf("✓ Eliminado %s (%d entrada/s)\n", service, deleted)
+	fmt.Printf("%s deleted, (%d passwords)\n", service, deleted)
 }
