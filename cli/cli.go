@@ -5,6 +5,7 @@ import (
 	"os"
 	"syscall"
 
+	"slices"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -52,11 +53,19 @@ func cmdAdd(args []string) {
 	var passLen, specialCount int
 	var err error
 
+	actions := []string{"-gen", "-help"}
+
+	if !slices.Contains(actions, args[1]) {
+		fmt.Printf("Argument  <%s> does not exist\n", args[1])
+		return
+	}
+
 	fmt.Print("Service (ej: github.com): ")
 	fmt.Scanln(&service)
 
 	fmt.Print("User: ")
 	fmt.Scanln(&username)
+
 	if len(args) >= 2 && args[1] == "-gen" {
 
 		fmt.Println("How many characters do you want your password?")
