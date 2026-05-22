@@ -18,6 +18,7 @@ Perkbox is a console based password manager, at the moment only works locally st
 * **"get"**: Get the password to your specific service.
   * Example: `./perkbox get xvideos.com`
 * **"delete"**: Same shit as add but to delete, like cmon bro is not that hard
+* **"list"**: Get a list of your registered services.
 
 ## Master Password
 In order to keep every password safe you will need to set a master passwords after adding, this password can be the same or different from the other ones
