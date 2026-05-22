@@ -19,7 +19,7 @@ import (
 func Run(args []string) {
 	switch args[0] {
 	case "add":
-		cmdAdd()
+		cmdAdd(args)
 	case "get":
 		if len(args) < 2 {
 			fmt.Println("Use: perkbox get <service>")
@@ -47,16 +47,36 @@ func readPassword(prompt string) string {
 	return string(password)
 }
 
-func cmdAdd() {
-	var service, username string
+func cmdAdd(args []string) {
+	var service, username, password string
+	var passLen, specialCount int
+	var err error
 
 	fmt.Print("Service (ej: github.com): ")
 	fmt.Scanln(&service)
 
 	fmt.Print("User: ")
 	fmt.Scanln(&username)
+	if len(args) >= 2 && args[1] == "-gen" {
 
-	password := readPassword("Password: ")
+		fmt.Println("How many characters do you want your password?")
+		fmt.Scanln(&passLen)
+		if passLen == 0 {
+			fmt.Println("Impossible to generate a password with 0 characters")
+			return
+		}
+		fmt.Println("How many special characters?")
+		fmt.Scanln(&specialCount)
+
+		if specialCount > passLen {
+			fmt.Println("Too short of a password for that many special characters")
+		}
+
+		password, err = charGen(passLen, specialCount)
+
+	} else {
+		password = readPassword("Password: ")
+	}
 	masterPwd := readPassword("Master password: ")
 
 	encrypted, err := crypto.Encrypt(password, masterPwd)
