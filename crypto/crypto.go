@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-// convierte pass en clave de 32 bytes para AES
+// converts pass to 32 bytes for AES
 func deriveKey(masterPassword string) []byte {
 	hash := sha256.Sum256([]byte(masterPassword))
 	return hash[:]
@@ -27,18 +27,18 @@ func Encrypt(plaintext, masterPassword string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// nonce es un número aleatorio que usamos una sola vez
+	// nonce is a random number that we only use once
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
 
-	// Seal encripta y agrega el nonce al inicio
+	// Seal encrypts and adds nonce to the beginning
 	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
 	return ciphertext, nil
 }
 
-// Decrypt desencripta los datos
+// Decrypt the data
 func Decrypt(ciphertext []byte, masterPassword string) (string, error) {
 	key := deriveKey(masterPassword)
 
@@ -54,15 +54,15 @@ func Decrypt(ciphertext []byte, masterPassword string) (string, error) {
 
 	nonceSize := gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
-		return "", errors.New("ciphertext demasiado corto")
+		return "", errors.New("ciphertext too short")
 	}
 
-	// Separamos el nonce del resto del mensaje encriptado
+	// Separates nonce from the rest
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return "", errors.New("master password incorrecta o datos corruptos")
+		return "", errors.New("Wrong Master Password or Data corrupted")
 	}
 
 	return string(plaintext), nil

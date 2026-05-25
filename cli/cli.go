@@ -30,11 +30,12 @@ func Run(args []string) {
 	case "list":
 		cmdList()
 	case "delete":
-		if len(args) < 2 {
-			fmt.Println("Use: perkbox delete <service>")
+		if len(args) < 3 {
+			fmt.Println("Use: perkbox delete <service> <username>")
 			os.Exit(1)
 		}
-		cmdDelete(args[1])
+		cmdDelete(args[1], args[2])
+
 	default:
 		fmt.Printf("Unkown command: %s\n", args[0])
 		os.Exit(1)
@@ -51,11 +52,10 @@ func readPassword(prompt string) string {
 func cmdAdd(args []string) {
 	var service, username, password string
 	var passLen, specialCount int
-	var err error
 
 	actions := []string{"-gen", "-help"}
 
-	if !slices.Contains(actions, args[1]) {
+	if len(args) > 1 && !slices.Contains(actions, args[1]) {
 		fmt.Printf("Argument  <%s> does not exist\n", args[1])
 		return
 	}
@@ -81,37 +81,39 @@ func cmdAdd(args []string) {
 			fmt.Println("Too short of a password for that many special characters")
 		}
 
-		password, err = charGen(passLen, specialCount)
+		password = charGen(passLen, specialCount)
 
-	} else {
+	} else if len(args) < 2 {
 		password = readPassword("Password: ")
 	}
 	masterPwd := readPassword("Master password: ")
+	verification := verifyMasterPwd(masterPwd)
+	if verification == true {
+		encrypted, err := crypto.Encrypt(password, masterPwd)
+		if err != nil {
+			fmt.Println("Error encrypting:", err)
+			os.Exit(1)
+		}
 
-	encrypted, err := crypto.Encrypt(password, masterPwd)
-	if err != nil {
-		fmt.Println("Error encrypting:", err)
+		entries, err := storage.LoadAll()
+		if err != nil {
+			fmt.Println("Error loading data:", err)
+			os.Exit(1)
+		}
+
+		entries = append(entries, storage.Entry{
+			Service:  service,
+			Username: username,
+			Password: encrypted,
+		})
+		if err := storage.SaveAll(entries); err != nil {
+			fmt.Println("Error saving:", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Error verifying Master Password, please try again...")
 		os.Exit(1)
 	}
-
-	entries, err := storage.LoadAll()
-	if err != nil {
-		fmt.Println("Error loading data:", err)
-		os.Exit(1)
-	}
-
-	entries = append(entries, storage.Entry{
-		Service:  service,
-		Username: username,
-		Password: encrypted,
-	})
-
-	if err := storage.SaveAll(entries); err != nil {
-		fmt.Println("Error saving:", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("%s's password saved \n", service)
 }
 
 func cmdGet(service string) {
@@ -159,28 +161,39 @@ func cmdList() {
 	}
 }
 
-func cmdDelete(service string) {
+func cmdDelete(service string, user string) {
 	entries, err := storage.LoadAll()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 
+	var toDelete []storage.Entry
 	var filtered []storage.Entry
-	deleted := 0
 	for _, e := range entries {
-		if e.Service != service {
-			filtered = append(filtered, e)
+		if e.Service == service && e.Username == user {
+			toDelete = append(toDelete, e)
 		} else {
-			deleted++
+			filtered = append(filtered, e)
 		}
 	}
 
-	if deleted == 0 {
+	if len(toDelete) == 0 {
 		fmt.Printf("Couldn't find: %s\n", service)
 		return
 	}
 
-	storage.SaveAll(filtered)
-	fmt.Printf("%s deleted, (%d passwords)\n", service, deleted)
+	masterPwd := readPassword("Master password: ")
+
+	_, err = crypto.Decrypt(toDelete[0].Password, masterPwd)
+	if err != nil {
+		fmt.Println("Error: Wrong Master Password")
+		return
+	}
+
+	if err := storage.SaveAll(filtered); err != nil {
+		fmt.Println("Error saving:", err)
+		return
+	}
+	fmt.Printf("%s deleted, (%d passwords)\n", service, len(toDelete))
 }
