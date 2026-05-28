@@ -1,27 +1,63 @@
-# PERKBOX
+# Perkbox
 
-Perkbox is a console based password manager, at the moment only works locally storaging your passwords, but soon there's gonna be a wa to host it by yourself
+Perkbox is a local, console-based password manager written in Go. It stores encrypted credentials on your machine and provides a minimal CLI to add, retrieve, list, and delete entries.
 
 ## Features
-* Developed in golang to allow max performance for the user and comodity for the contributors
-* "SECURE" Passwords live for 10 seconds in the clipboard, then the clipboard gets emptied
-* CLI Interface, ngl I just like terminals, so I don't care about having interfaces, add one if you want to
+- Local-only storage in a single JSON file
+- AES-256-GCM encryption protected by a master password
+- Clipboard copy with automatic clearing after 10 seconds
+- Service + username support
 
-## Tutorial
-* Clone the repo
-* Run "go build"
-* Syntax goes: `./perkbox <command> <service>`
+## Security model
+- The master password is hashed with SHA-256 to derive the encryption key.
+- Data is stored at `~/.perkbox.json` with `0600` permissions.
+- No sync, recovery, or audit guarantees. Use at your own risk.
 
-## Command list
-* **"add"**: Use it to add new services to the manager
-  * Example: `./perkbox add furryporn.com`
-* **"get"**: Get the password to your specific service.
-  * Example: `./perkbox get xvideos.com`
-* **"delete"**: Same shit as add but to delete, like cmon bro is not that hard
-* **"list"**: Get a list of your registered services.
+## Requirements
+- Go toolchain (see `go.mod`)
 
-## Master Password
-In order to keep every password safe you will need to set a master passwords after adding, this password can be the same or different from the other ones
+## Build
+```bash
+go build
+```
 
-## Suggestions
-I'm accepting suggestions since I'm new to this programming language, like bro, every company is asking if I know about this language and IDK why.
+## Installation
+
+### Arch Linux (AUR)
+This repo includes `PKGBUILD` and `.SRCINFO` for the AUR. After tagging a
+release (e.g., `v0.1.0`), update `pkgver`, refresh checksums, and regenerate
+`.SRCINFO`:
+
+```bash
+updpkgsums
+makepkg --printsrcinfo > .SRCINFO
+```
+
+Then publish to the AUR. Users can install with:
+
+```bash
+yay -S perkbox
+```
+
+### Manual install
+```bash
+go build -o perkbox .
+sudo install -Dm755 perkbox /usr/local/bin/perkbox
+```
+
+## Usage
+```bash
+./perkbox <command> [service]
+```
+
+## Commands
+- **add**: Interactive prompt for service, username, password, and master password
+- **get** `<service>`: Decrypts and copies the password to the clipboard (cleared after 10s)
+- **delete** `<service>`: Removes all entries matching the service
+- **list**: Lists all saved services and usernames
+
+## Data location
+`~/.perkbox.json`
+
+## Contributing
+Issues and pull requests are welcome.
