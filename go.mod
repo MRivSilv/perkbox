@@ -1,4 +1,4 @@
-module perkbox
+module github.com/MRivSilv/perkbox
 
 go 1.26.3
 

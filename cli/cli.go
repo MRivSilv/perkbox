@@ -10,8 +10,8 @@ import (
 
 	"github.com/atotto/clipboard"
 
-	"perkbox/crypto"
-	"perkbox/storage"
+	"github.com/MRivSilv/perkbox/crypto"
+	"github.com/MRivSilv/perkbox/storage"
 
 	"golang.org/x/term"
 )

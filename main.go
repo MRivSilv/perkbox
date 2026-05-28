@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"perkbox/cli"
+	"github.com/MRivSilv/perkbox/cli"
 )
 
 func main() {

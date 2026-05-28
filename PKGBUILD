@@ -6,12 +6,13 @@ arch=('x86_64')
 url="https://github.com/MRivSilv/perkbox"
 license=('MIT')
 makedepends=('go')
+depends=('xclip')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 build() {
   cd "$srcdir/$pkgname-$pkgver"
-  go build -o perkbox .
+  go build -trimpath -ldflags='-s -w' -o perkbox .
 }
 
 package() {

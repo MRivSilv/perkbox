@@ -6,6 +6,7 @@ pkgbase = perkbox
 	arch = x86_64
 	license = MIT
 	makedepends = go
+	depends = xclip
 	source = perkbox-0.1.0.tar.gz::https://github.com/MRivSilv/perkbox/archive/refs/tags/v0.1.0.tar.gz
 	sha256sums = SKIP
 
