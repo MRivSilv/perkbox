@@ -1,5 +1,5 @@
 pkgname=perkbox
-pkgver=0.2.0
+pkgver=0.1.0
 pkgrel=1
 pkgdesc="Local console-based password manager"
 arch=('x86_64')
