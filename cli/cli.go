@@ -16,8 +16,11 @@ import (
 	"golang.org/x/term"
 )
 
-// Run despacha el comando correcto
+var store storage.Storage
+
 func Run(args []string) {
+	store = storage.GetStorage()
+
 	switch args[0] {
 	case "add":
 		cmdAdd(args)
@@ -35,7 +38,30 @@ func Run(args []string) {
 			os.Exit(1)
 		}
 		cmdDelete(args[1], args[2])
-
+	case "init":
+		if len(args) < 2 {
+			fmt.Println("Use: perkbox init <remote-url>")
+			fmt.Println("  or: perkbox init local")
+			os.Exit(1)
+		}
+		cmdInit(args[1])
+	case "push":
+		cmdPush()
+	case "pull":
+		cmdPull()
+	case "edit":
+		if len(args) < 3 {
+			fmt.Println("Use: perkbox edit <service> <username>")
+			os.Exit(1)
+		}
+		cmdEdit(args[1], args[2], args)
+	case "auto-push":
+		if len(args) < 2 || (args[1] != "on" && args[1] != "off") {
+			fmt.Println("Use: perkbox auto-push on")
+			fmt.Println("  or: perkbox auto-push off")
+			os.Exit(1)
+		}
+		cmdAutoPush(args[1] == "on")
 	default:
 		fmt.Printf("Unkown command: %s\n", args[0])
 		os.Exit(1)
@@ -95,7 +121,7 @@ func cmdAdd(args []string) {
 			os.Exit(1)
 		}
 
-		entries, err := storage.LoadAll()
+		entries, err := store.LoadAll()
 		if err != nil {
 			fmt.Println("Error loading data:", err)
 			os.Exit(1)
@@ -106,7 +132,7 @@ func cmdAdd(args []string) {
 			Username: username,
 			Password: encrypted,
 		})
-		if err := storage.SaveAll(entries); err != nil {
+		if err := store.SaveAll(entries); err != nil {
 			fmt.Println("Error saving:", err)
 			os.Exit(1)
 		}
@@ -116,10 +142,133 @@ func cmdAdd(args []string) {
 	}
 }
 
+func cmdInit(url string) {
+	if url == "local" {
+		url = ""
+	}
+	if err := storage.InitGitRepo(url); err != nil {
+		fmt.Println("Error initializing git repo:", err)
+		os.Exit(1)
+	}
+	store = storage.GetStorage()
+	fmt.Println("Git repository initialized in ~/.perkbox/")
+}
+
+func cmdPush() {
+	if err := store.Push(); err != nil {
+		fmt.Println("Error pushing:", err)
+		os.Exit(1)
+	}
+	fmt.Println("Pushed successfully")
+}
+
+func cmdPull() {
+	if err := store.Pull(); err != nil {
+		fmt.Println("Error pulling:", err)
+		os.Exit(1)
+	}
+	fmt.Println("Pulled successfully")
+}
+
+func cmdAutoPush(enabled bool) {
+	gs, ok := store.(*storage.GitStorage)
+	if !ok {
+		fmt.Println("Auto-push is only available in git mode (run 'perkbox init' first)")
+		return
+	}
+	if err := gs.SetAutoPush(enabled); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+	if enabled {
+		fmt.Println("Auto-push enabled")
+	} else {
+		fmt.Println("Auto-push disabled")
+	}
+}
+
+func cmdEdit(service, username string, args []string) {
+	masterPwd := readPassword("Master password: ")
+
+	entries, err := store.LoadAll()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	idx := -1
+	for i, e := range entries {
+		if e.Service == service && e.Username == username {
+			idx = i
+			break
+		}
+	}
+
+	if idx == -1 {
+		fmt.Printf("Entry not found: %s (%s)\n", service, username)
+		return
+	}
+
+	currentPwd, err := crypto.Decrypt(entries[idx].Password, masterPwd)
+	if err != nil {
+		fmt.Println("Error: Wrong Master Password")
+		return
+	}
+
+	fmt.Printf("\nEditing: %s (%s)\n", service, username)
+	fmt.Print("New username (enter to keep): ")
+	var newUser string
+	fmt.Scanln(&newUser)
+	if newUser == "" {
+		newUser = entries[idx].Username
+	}
+
+	var newPwd string
+	if len(args) >= 4 && args[3] == "-gen" {
+		var passLen, specialCount int
+		fmt.Println("How many characters do you want your password?")
+		fmt.Scanln(&passLen)
+		if passLen == 0 {
+			fmt.Println("Impossible to generate a password with 0 characters")
+			return
+		}
+		fmt.Println("How many special characters?")
+		fmt.Scanln(&specialCount)
+		if specialCount > passLen {
+			fmt.Println("Too short of a password for that many special characters")
+		}
+		newPwd = charGen(passLen, specialCount)
+	} else {
+		fmt.Print("New password (enter to keep): ")
+		newPwd = readPassword("")
+	}
+	if newPwd == "" {
+		newPwd = currentPwd
+	}
+
+	encrypted, err := crypto.Encrypt(newPwd, masterPwd)
+	if err != nil {
+		fmt.Println("Error encrypting:", err)
+		os.Exit(1)
+	}
+
+	entries[idx] = storage.Entry{
+		Service:  service,
+		Username: newUser,
+		Password: encrypted,
+	}
+
+	if err := store.SaveAll(entries); err != nil {
+		fmt.Println("Error saving:", err)
+		os.Exit(1)
+	}
+	fmt.Println("Entry updated")
+}
+
 func cmdGet(service string) {
 	masterPwd := readPassword("Master password: ")
 
-	entries, err := storage.FindByService(service)
+	entries, err := store.FindByService(service)
 	if err != nil || len(entries) == 0 {
 		fmt.Printf(" %s not found\n", service)
 		return
@@ -144,7 +293,7 @@ func cmdGet(service string) {
 }
 
 func cmdList() {
-	entries, err := storage.LoadAll()
+	entries, err := store.LoadAll()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -162,7 +311,7 @@ func cmdList() {
 }
 
 func cmdDelete(service string, user string) {
-	entries, err := storage.LoadAll()
+	entries, err := store.LoadAll()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -191,7 +340,7 @@ func cmdDelete(service string, user string) {
 		return
 	}
 
-	if err := storage.SaveAll(filtered); err != nil {
+	if err := store.SaveAll(filtered); err != nil {
 		fmt.Println("Error saving:", err)
 		return
 	}

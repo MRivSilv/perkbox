@@ -1,1 +1,4 @@
 perkbox
+*.tar.gz
+src/
+pkg/
