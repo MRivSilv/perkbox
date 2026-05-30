@@ -22,7 +22,7 @@ func printHelp() {
 	fmt.Println()
 	fmt.Println("Commands:")
 	fmt.Println("  add [-gen]              Add a new entry (use -gen to auto-generate password)")
-	fmt.Println("  get    <service>        Copy password to clipboard")
+	fmt.Println("  get    <service> <user>  Copy password to clipboard")
 	fmt.Println("  edit   <service> <user> Edit an existing entry")
 	fmt.Println("  delete <service> <user> Delete an entry")
 	fmt.Println("  list                    List all services")

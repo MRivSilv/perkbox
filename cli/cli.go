@@ -25,11 +25,11 @@ func Run(args []string) {
 	case "add":
 		cmdAdd(args)
 	case "get":
-		if len(args) < 2 {
-			fmt.Println("Use: perkbox get <service>")
+		if len(args) < 3 {
+			fmt.Println("Use: perkbox get <service> <username>")
 			os.Exit(1)
 		}
-		cmdGet(args[1])
+		cmdGet(args[1], args[2])
 	case "list":
 		cmdList()
 	case "delete":
@@ -265,16 +265,28 @@ func cmdEdit(service, username string, args []string) {
 	fmt.Println("Entry updated")
 }
 
-func cmdGet(service string) {
+func cmdGet(service, username string) {
 	masterPwd := readPassword("Master password: ")
 
-	entries, err := store.FindByService(service)
-	if err != nil || len(entries) == 0 {
-		fmt.Printf(" %s not found\n", service)
+	entries, err := store.LoadAll()
+	if err != nil {
+		fmt.Println("Error:", err)
 		return
 	}
 
+	var found []storage.Entry
 	for _, e := range entries {
+		if e.Service == service && e.Username == username {
+			found = append(found, e)
+		}
+	}
+
+	if len(found) == 0 {
+		fmt.Printf("Entry not found: %s (%s)\n", service, username)
+		return
+	}
+
+	for _, e := range found {
 		pwd, err := crypto.Decrypt(e.Password, masterPwd)
 		if err != nil {
 			fmt.Println("Error: Wrong Master Password")

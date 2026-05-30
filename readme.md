@@ -29,17 +29,6 @@ go build
 ## Installation
 
 ### Arch Linux (AUR)
-This repo includes `PKGBUILD` and `.SRCINFO` for the AUR. After tagging a
-release (e.g., `v0.1.0`), update `pkgver`, refresh checksums, and regenerate
-`.SRCINFO`:
-
-```bash
-updpkgsums
-makepkg --printsrcinfo > .SRCINFO
-```
-
-Then publish to the AUR. Users can install with:
-
 ```bash
 yay -S perkbox
 ```
@@ -53,9 +42,18 @@ sudo install -Dm755 perkbox /usr/local/bin/perkbox
 ## Usage
 ```bash
 ./perkbox <command> [arguments...]
+./perkbox -h
+./perkbox --help
 ```
 
 ## Commands
+
+### help / -h / --help
+Shows the full list of commands with descriptions. Same as running `perkbox` with no arguments.
+```bash
+./perkbox help
+./perkbox -h
+```
 
 ### add
 Add a new entry. If called with `-gen`, it will ask for length and special character count and generate a secure random password.
@@ -64,10 +62,10 @@ Add a new entry. If called with `-gen`, it will ask for length and special chara
 ./perkbox add -gen
 ```
 
-### get `<service>`
+### get `<service> <username>`
 Decrypts and copies the password to the clipboard (cleared after 10s).
 ```bash
-./perkbox get github.com
+./perkbox get github.com myuser
 ```
 
 ### edit `<service> <username>`
