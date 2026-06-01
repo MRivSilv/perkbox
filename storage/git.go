@@ -55,7 +55,7 @@ func (s *GitStorage) Pull() error {
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		return fmt.Errorf("not a git repository, run 'perkbox init' first")
 	}
-	return s.gitCmd("pull", "--no-rebase", "origin", branch)
+	return s.gitCmd("pull", "--no-rebase", "--allow-unrelated-histories", "origin", branch)
 }
 
 func (s *GitStorage) commit(msg string) error {
