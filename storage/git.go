@@ -163,17 +163,6 @@ func InitGitRepo(remoteURL string) error {
 		return err
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		oldPath := filepath.Join(home, ".perkbox.json")
-		if _, err := os.Stat(oldPath); err == nil {
-			data, _ := os.ReadFile(oldPath)
-			os.WriteFile(path, data, 0600)
-			fmt.Println("Migrated passwords from ~/.perkbox.json")
-		} else {
-			os.WriteFile(path, []byte("[]"), 0600)
-		}
-	}
-
 	if err := runGit(dir, "init"); err != nil {
 		return err
 	}
@@ -182,11 +171,30 @@ func InitGitRepo(remoteURL string) error {
 		runGit(dir, "remote", "add", "origin", remoteURL)
 
 		if err := runGit(dir, "fetch", "origin"); err == nil {
-			runGit(dir, "checkout", "-b", "main", "origin/main")
-			fmt.Println("Cloned remote vault")
-			return nil
+			if runGitQuiet(dir, "rev-parse", "--verify", "origin/main") == nil {
+				os.Remove(path)
+				runGit(dir, "checkout", "-b", "main", "origin/main")
+				fmt.Println("Cloned remote vault")
+				return nil
+			}
 		}
-		fmt.Println("Remote not reachable or empty, starting local vault")
+		fmt.Println("Remote empty or not reachable, starting local vault")
+	}
+
+	hasExistingFile := false
+	if _, err := os.Stat(path); err == nil {
+		hasExistingFile = true
+	}
+
+	if !hasExistingFile {
+		oldPath := filepath.Join(home, ".perkbox.json")
+		if _, err := os.Stat(oldPath); err == nil {
+			data, _ := os.ReadFile(oldPath)
+			os.WriteFile(path, data, 0600)
+			fmt.Println("Migrated passwords from ~/.perkbox.json")
+		} else {
+			os.WriteFile(path, []byte("[]"), 0600)
+		}
 	}
 
 	runGit(dir, "checkout", "-b", "main")
@@ -202,5 +210,11 @@ func runGit(dir string, arg ...string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func runGitQuiet(dir string, arg ...string) error {
+	args := append([]string{"-C", dir}, arg...)
+	cmd := exec.Command("git", args...)
 	return cmd.Run()
 }

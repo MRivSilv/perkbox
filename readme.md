@@ -33,6 +33,11 @@ go build
 yay -S perkbox
 ```
 
+### npm
+```bash
+npm install -g perkbox
+```
+
 ### Manual install
 
 Linux / macOS:
