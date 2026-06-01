@@ -2,3 +2,4 @@ perkbox
 *.tar.gz
 src/
 pkg/
+*.exe
