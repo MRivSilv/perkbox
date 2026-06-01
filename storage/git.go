@@ -55,7 +55,47 @@ func (s *GitStorage) Pull() error {
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		return fmt.Errorf("not a git repository, run 'perkbox init' first")
 	}
-	return s.gitCmd("pull", "--no-rebase", "--allow-unrelated-histories", "origin", branch)
+
+	localEntries, _ := s.local.LoadAll()
+
+	if err := s.gitCmd("fetch", "origin"); err != nil {
+		return fmt.Errorf("failed to fetch from remote: %w", err)
+	}
+
+	remoteRef := fmt.Sprintf("origin/%s", branch)
+	if err := s.gitCmdQuiet("rev-parse", "--verify", remoteRef); err != nil {
+		fmt.Println("Nothing to pull (no remote branch)")
+		return nil
+	}
+
+	if err := s.gitCmd("reset", "--hard", remoteRef); err != nil {
+		return fmt.Errorf("failed to reset: %w", err)
+	}
+
+	remoteEntries, _ := s.local.LoadAll()
+
+	var merged []Entry
+	seen := make(map[string]bool)
+	for _, e := range remoteEntries {
+		key := e.Service + "\x00" + e.Username
+		seen[key] = true
+		merged = append(merged, e)
+	}
+	for _, e := range localEntries {
+		key := e.Service + "\x00" + e.Username
+		if !seen[key] {
+			merged = append(merged, e)
+		}
+	}
+
+	if len(merged) != len(remoteEntries) {
+		if err := s.local.SaveAll(merged); err != nil {
+			return fmt.Errorf("failed to save merged entries: %w", err)
+		}
+		return s.commit("merge: pull from remote")
+	}
+	fmt.Println("Already up to date")
+	return nil
 }
 
 func (s *GitStorage) commit(msg string) error {
