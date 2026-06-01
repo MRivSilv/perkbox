@@ -51,7 +51,7 @@ func (s *GitStorage) Pull() error {
 	if err != nil {
 		return err
 	}
-	return s.gitCmd("pull", "origin", branch)
+	return s.gitCmd("pull", "--allow-unrelated-histories", "origin", branch)
 }
 
 func (s *GitStorage) commit(msg string) error {
