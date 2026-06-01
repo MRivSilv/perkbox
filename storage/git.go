@@ -47,7 +47,11 @@ func (s *GitStorage) Push() error {
 }
 
 func (s *GitStorage) Pull() error {
-	return s.gitCmd("pull")
+	branch, err := s.currentBranch()
+	if err != nil {
+		return err
+	}
+	return s.gitCmd("pull", "origin", branch)
 }
 
 func (s *GitStorage) commit(msg string) error {

@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"syscall"
 
 	"slices"
 	"time"
@@ -70,7 +69,7 @@ func Run(args []string) {
 
 func readPassword(prompt string) string {
 	fmt.Print(prompt)
-	password, _ := term.ReadPassword(int(syscall.Stdin))
+	password, _ := term.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
 	return string(password)
 }

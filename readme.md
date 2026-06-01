@@ -34,9 +34,17 @@ yay -S perkbox
 ```
 
 ### Manual install
+
+Linux / macOS:
 ```bash
 go build -o perkbox .
 sudo install -Dm755 perkbox /usr/local/bin/perkbox
+```
+
+Windows:
+```powershell
+go build -o perkbox.exe .
+# Move perkbox.exe anywhere in your PATH
 ```
 
 ## Usage
