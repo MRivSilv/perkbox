@@ -51,7 +51,11 @@ func (s *GitStorage) Pull() error {
 	if err != nil {
 		return err
 	}
-	return s.gitCmd("pull", "--allow-unrelated-histories", "origin", branch)
+	gitDir := filepath.Join(s.dir, ".git")
+	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
+		return fmt.Errorf("not a git repository, run 'perkbox init' first")
+	}
+	return s.gitCmd("pull", "--no-rebase", "origin", branch)
 }
 
 func (s *GitStorage) commit(msg string) error {
@@ -133,15 +137,21 @@ func InitGitRepo(remoteURL string) error {
 	if err := runGit(dir, "init"); err != nil {
 		return err
 	}
+
+	if remoteURL != "" {
+		runGit(dir, "remote", "add", "origin", remoteURL)
+
+		if err := runGit(dir, "fetch", "origin"); err == nil {
+			runGit(dir, "checkout", "-b", "main", "origin/main")
+			fmt.Println("Cloned remote vault")
+			return nil
+		}
+		fmt.Println("Remote not reachable or empty, starting local vault")
+	}
+
 	runGit(dir, "checkout", "-b", "main")
 	runGit(dir, "add", "-A")
 	runGit(dir, "commit", "-m", "initial vault")
-
-	if remoteURL != "" {
-		if err := runGit(dir, "remote", "add", "origin", remoteURL); err != nil {
-			return fmt.Errorf("failed to add remote: %w", err)
-		}
-	}
 
 	return nil
 }
