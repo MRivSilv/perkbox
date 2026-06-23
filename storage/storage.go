@@ -9,6 +9,7 @@ type Entry struct {
 	Service  string `json:"service"`
 	Username string `json:"username"`
 	Password []byte `json:"password"`
+	TwoFAKey []byte `json:"twofa_key,omitempty"`
 }
 
 type Storage interface {

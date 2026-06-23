@@ -11,7 +11,6 @@ import (
 
 	"github.com/MRivSilv/perkbox/crypto"
 	"github.com/MRivSilv/perkbox/storage"
-
 	"golang.org/x/term"
 )
 
@@ -61,6 +60,26 @@ func Run(args []string) {
 			os.Exit(1)
 		}
 		cmdAutoPush(args[1] == "on")
+	case "set2fa":
+		if len(args) > 1 {
+			fmt.Println("Use: perkbox set2fa")
+			os.Exit(1)
+		}
+		fmt.Printf("Paste your 2fa auth code: ")
+		var code string
+		fmt.Scanln(&code)
+
+		if code == "" {
+			fmt.Println("Paste a valid code")
+			os.Exit(1)
+		}
+		set2FA(code)
+	case "get2fa":
+		if len(args) < 3 {
+			fmt.Println("Use: perkbox get2fa <service> <username>")
+			os.Exit(1)
+		}
+		get2fa(args[1], args[2])
 	default:
 		fmt.Printf("Unkown command: %s\n", args[0])
 		os.Exit(1)
