@@ -2,12 +2,12 @@ package cli
 
 import (
 	"fmt"
-	"os"
-	"time"
+	"github.com/atotto/clipboard"
 
 	"github.com/MRivSilv/perkbox/crypto"
-	"github.com/atotto/clipboard"
 	"github.com/pquerna/otp/totp"
+	"os"
+	"time"
 )
 
 func set2FA(code string) {
@@ -49,11 +49,11 @@ func set2FA(code string) {
 }
 
 func get2fa(service string, username string) {
-	fmt.Printf("2FA code for: %s(%s)\n", service, username)
 	masterPwd := readPassword("Master password: ")
+	fmt.Printf("2FA code for: %s(%s)\n", service, username)
 	entries, err := store.LoadAll()
 	if err != nil {
-		fmt.Println("Error: ", err)
+		fmt.Println("Error:", err)
 		return
 	}
 	for i, e := range entries {
@@ -75,6 +75,8 @@ func get2fa(service string, username string) {
 				return
 			}
 			fmt.Println("Totp code copied to your clipboard")
+			return
 		}
 	}
+	fmt.Println("Service or User not found (Check list)")
 }

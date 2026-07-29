@@ -3,23 +3,19 @@
 Perkbox is a local, console-based password manager written in Go. It stores encrypted credentials on your machine and provides a minimal CLI to add, retrieve, list, and delete entries.
 
 ## Features
-- Local OR version-controlled storage via git
 - AES-256-GCM encryption protected by a master password
 - Built-in secure password generator
 - Clipboard copy with automatic clearing after 10 seconds
 - Service + username support
-- Git auto-commit on every change (when using git mode)
-- Optional auto-push to remote after every change
+- TOTP 2FA support
 
 ## Security model
 - The master password is hashed with SHA-256 to derive the encryption key.
 - Data is stored with `0600` permissions.
-- When using git, the JSON vault is still encrypted — your remote never sees plaintext.
 - No sync, recovery, or audit guarantees. Use at your own risk.
 
 ## Requirements
 - Go toolchain (see `go.mod`)
-- `git` (only required for git mode)
 
 ## Build
 ```bash
@@ -100,76 +96,20 @@ Lists all saved services and usernames.
 ./perkbox list
 ```
 
-### init `<remote-url>`
-Initializes a git repository at `~/.perkbox/` for version-controlled storage. If a remote URL is provided, it sets the origin. Existing passwords from `~/.perkbox.json` are automatically migrated.
+### set2fa
+Stores a TOTP secret key for an existing entry.
 ```bash
-./perkbox init local
-./perkbox init https://github.com/user/vault.git
+./perkbox set2fa
 ```
 
-### push
-Push committed changes to the git remote.
+### get2fa `<service> <username>`
+Generates a TOTP code for the given entry and copies it to the clipboard.
 ```bash
-./perkbox push
+./perkbox get2fa github.com myuser
 ```
-
-### pull
-Pull latest changes from the git remote.
-```bash
-./perkbox pull
-```
-
-### auto-push on / off
-When enabled, every `add` or `delete` automatically runs `push` after committing.
-```bash
-./perkbox auto-push on
-./perkbox auto-push off
-```
-
-## Git setup step-by-step
-
-### Prerequisites
-1. A GitHub/GitLab account
-2. `git` installed on your system
-
-### 1. Create a remote repository
-Go to GitHub and create a new **empty** repository (no README, no .gitignore, no license).
-
-### 2. Initialize Perkbox with your remote
-```bash
-./perkbox init https://github.com/your-user/vault.git
-```
-
-### 3. Push your vault to the remote
-```bash
-./perkbox push
-```
-The first time, git will ask for your GitHub username and password. Use a **personal access token** instead of your password:
-- Create one at https://github.com/settings/tokens (scopes: `repo`)
-- Paste it when prompted for a password
-
-### 4. (Optional) Save credentials so you don't type them every time
-```bash
-git config --global credential.helper store
-```
-The next time you type your username and token, they will be saved. The token is stored in plaintext in `~/.git-credentials`.
-
-### 5. Enable auto-push (optional)
-```bash
-./perkbox auto-push on
-```
-Now every `add` or `delete` will automatically commit and push to your remote.
-
-### 6. Sync between machines
-On another machine:
-```bash
-git clone https://github.com/your-user/vault.git ~/.perkbox
-```
-Then use `perkbox` normally. Run `perkbox pull` before and `perkbox push` after making changes.
 
 ## Data location
-- **Local mode**: `~/.perkbox.json`
-- **Git mode**: `~/.perkbox/perkbox.json`
+- `~/.perkbox.json`
 
 ## Contributing
 Issues and pull requests are welcome.
