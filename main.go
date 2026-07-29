@@ -26,8 +26,4 @@ func printHelp() {
 	fmt.Println("  edit   <service> <user> Edit an existing entry")
 	fmt.Println("  delete <service> <user> Delete an entry")
 	fmt.Println("  list                    List all services")
-	fmt.Println("  init   <url>            Initialize git repo (url or 'local')")
-	fmt.Println("  push                    Push to git remote")
-	fmt.Println("  pull                    Pull from git remote")
-	fmt.Println("  auto-push on|off        Toggle automatic push after changes")
 }

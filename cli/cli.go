@@ -11,7 +11,6 @@ import (
 
 	"github.com/MRivSilv/perkbox/crypto"
 	"github.com/MRivSilv/perkbox/storage"
-
 	"golang.org/x/term"
 )
 
@@ -37,30 +36,32 @@ func Run(args []string) {
 			os.Exit(1)
 		}
 		cmdDelete(args[1], args[2])
-	case "init":
-		if len(args) < 2 {
-			fmt.Println("Use: perkbox init <remote-url>")
-			fmt.Println("  or: perkbox init local")
-			os.Exit(1)
-		}
-		cmdInit(args[1])
-	case "push":
-		cmdPush()
-	case "pull":
-		cmdPull()
 	case "edit":
 		if len(args) < 3 {
 			fmt.Println("Use: perkbox edit <service> <username>")
 			os.Exit(1)
 		}
 		cmdEdit(args[1], args[2], args)
-	case "auto-push":
-		if len(args) < 2 || (args[1] != "on" && args[1] != "off") {
-			fmt.Println("Use: perkbox auto-push on")
-			fmt.Println("  or: perkbox auto-push off")
+	case "set2fa":
+		if len(args) > 1 {
+			fmt.Println("Use: perkbox set2fa")
 			os.Exit(1)
 		}
-		cmdAutoPush(args[1] == "on")
+		fmt.Printf("Paste your 2fa auth code: ")
+		var code string
+		fmt.Scanln(&code)
+
+		if code == "" {
+			fmt.Println("Paste a valid code")
+			os.Exit(1)
+		}
+		set2FA(code)
+	case "get2fa":
+		if len(args) < 3 {
+			fmt.Println("Use: perkbox get2fa <service> <username>")
+			os.Exit(1)
+		}
+		get2fa(args[1], args[2])
 	default:
 		fmt.Printf("Unkown command: %s\n", args[0])
 		os.Exit(1)
@@ -138,51 +139,6 @@ func cmdAdd(args []string) {
 	} else {
 		fmt.Println("Error verifying Master Password, please try again...")
 		os.Exit(1)
-	}
-}
-
-func cmdInit(url string) {
-	if url == "local" {
-		url = ""
-	}
-	if err := storage.InitGitRepo(url); err != nil {
-		fmt.Println("Error initializing git repo:", err)
-		os.Exit(1)
-	}
-	store = storage.GetStorage()
-	fmt.Println("Git repository initialized in ~/.perkbox/")
-}
-
-func cmdPush() {
-	if err := store.Push(); err != nil {
-		fmt.Println("Error pushing:", err)
-		os.Exit(1)
-	}
-	fmt.Println("Pushed successfully")
-}
-
-func cmdPull() {
-	if err := store.Pull(); err != nil {
-		fmt.Println("Error pulling:", err)
-		os.Exit(1)
-	}
-	fmt.Println("Pulled successfully")
-}
-
-func cmdAutoPush(enabled bool) {
-	gs, ok := store.(*storage.GitStorage)
-	if !ok {
-		fmt.Println("Auto-push is only available in git mode (run 'perkbox init' first)")
-		return
-	}
-	if err := gs.SetAutoPush(enabled); err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-	if enabled {
-		fmt.Println("Auto-push enabled")
-	} else {
-		fmt.Println("Auto-push disabled")
 	}
 }
 

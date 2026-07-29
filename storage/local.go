@@ -12,8 +12,9 @@ type LocalStorage struct {
 
 func NewLocalStorage() *LocalStorage {
 	home, _ := os.UserHomeDir()
+	dir := filepath.Join(home, ".perkbox")
 	return &LocalStorage{
-		path: filepath.Join(home, ".perkbox.json"),
+		path: filepath.Join(dir, ".perkbox.json"),
 	}
 }
 
@@ -51,6 +52,3 @@ func (s *LocalStorage) FindByService(service string) ([]Entry, error) {
 	}
 	return found, nil
 }
-
-func (s *LocalStorage) Push() error { return nil }
-func (s *LocalStorage) Pull() error { return nil }
