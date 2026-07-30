@@ -3,10 +3,9 @@ package cli
 import (
 	"fmt"
 	"github.com/atotto/clipboard"
-
-	"github.com/MRivSilv/perkbox/crypto"
 	"github.com/pquerna/otp/totp"
 	"os"
+	"perkbox/crypto"
 	"time"
 )
 
