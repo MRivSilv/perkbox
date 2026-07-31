@@ -1,12 +1,14 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/atotto/clipboard"
-	"github.com/pquerna/otp/totp"
 	"os"
 	"perkbox/crypto"
 	"time"
+
+	"github.com/atotto/clipboard"
+	"github.com/pquerna/otp/totp"
 )
 
 func set2FA(code string) {
@@ -25,9 +27,15 @@ func set2FA(code string) {
 		fmt.Println("Error:", err)
 		return
 	}
+	e_service, err := crypto.Encrypt(service, masterPwd)
+	e_username, err := crypto.Encrypt(username, masterPwd)
 
+	if err != nil {
+		fmt.Println("Error encrypting input")
+		os.Exit(1)
+	}
 	for i, e := range entries {
-		if e.Service == service && e.Username == username {
+		if bytes.Equal(e.Service, e_service) && bytes.Equal(e.Username, e_username) {
 			encrypted, err := crypto.Encrypt(code, masterPwd)
 			if err != nil {
 				fmt.Println("Error encrypting 2FA key:", err)
@@ -55,8 +63,9 @@ func get2fa(service string, username string) {
 		fmt.Println("Error:", err)
 		return
 	}
+	e_service, e_username := crypto.EncryptInput(service, username, masterPwd)
 	for i, e := range entries {
-		if e.Service == service && e.Username == username {
+		if bytes.Equal(e.Service, e_service) && bytes.Equal(e.Username, e_username) {
 			decoded, err := crypto.Decrypt(entries[i].TwoFAKey, masterPwd)
 			if err != nil {
 				fmt.Println("Error decrypting 2FA key: ", err)

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -66,4 +67,51 @@ func Decrypt(ciphertext []byte, masterPassword string) (string, error) {
 	}
 
 	return string(plaintext), nil
+}
+
+func EncryptAll(service, username, password, masterPassword string) ([]byte, []byte, []byte) {
+	e_service, err := Encrypt(service, masterPassword)
+	if err != nil {
+		fmt.Printf("Error encrypting service")
+		return nil, nil, nil
+	}
+	e_username, err := Encrypt(username, masterPassword)
+	if err != nil {
+		fmt.Printf("Error encrypting username")
+		return nil, nil, nil
+	}
+	e_password, err := Encrypt(password, masterPassword)
+	if err != nil {
+		fmt.Printf("Error encrypting password")
+		return nil, nil, nil
+	}
+	return e_service, e_username, e_password
+}
+
+func EncryptInput(service, username, masterPassword string) ([]byte, []byte) {
+	e_service, err := Encrypt(service, masterPassword)
+	if err != nil {
+		fmt.Printf("Error encrypting service")
+		return nil, nil
+	}
+	e_username, err := Encrypt(username, masterPassword)
+	if err != nil {
+		fmt.Printf("Error encrypting username")
+		return nil, nil
+	}
+	return e_service, e_username
+}
+
+func DecryptOutput(service, username []byte, masterPassword string) (string, string) {
+	d_service, err := Decrypt(service, masterPassword)
+	if err != nil {
+		fmt.Printf("Error decrypting service")
+		return "", ""
+	}
+	d_username, err := Decrypt(username, masterPassword)
+	if err != nil {
+		fmt.Printf("Error decrypting username")
+		return "", ""
+	}
+	return d_service, d_username
 }

@@ -2,12 +2,13 @@ package cli
 
 import (
 	"fmt"
-	"github.com/atotto/clipboard"
 	"os"
 	"perkbox/crypto"
 	"perkbox/storage"
 	"slices"
 	"time"
+
+	"github.com/atotto/clipboard"
 )
 
 func cmdAdd(args []string) {
@@ -50,12 +51,7 @@ func cmdAdd(args []string) {
 	masterPwd := readPassword("Master password: ")
 	verification := verifyMasterPwd(masterPwd)
 	if verification == true {
-		encrypted, err := crypto.Encrypt(password, masterPwd)
-		if err != nil {
-			fmt.Println("Error encrypting:", err)
-			os.Exit(1)
-		}
-
+		e_service, e_username, e_password := crypto.EncryptAll(service, username, password, masterPwd)
 		entries, err := store.LoadAll()
 		if err != nil {
 			fmt.Println("Error loading data:", err)
@@ -63,9 +59,9 @@ func cmdAdd(args []string) {
 		}
 
 		entries = append(entries, storage.Entry{
-			Service:  service,
-			Username: username,
-			Password: encrypted,
+			Service:  e_service,
+			Username: e_username,
+			Password: e_password,
 		})
 		if err := store.SaveAll(entries); err != nil {
 			fmt.Println("Error saving:", err)
@@ -85,10 +81,10 @@ func cmdEdit(service, username string, args []string) {
 		fmt.Println("Error:", err)
 		return
 	}
-
 	idx := -1
 	for i, e := range entries {
-		if e.Service == service && e.Username == username {
+		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
+		if dSrvc == service && dUsr == username {
 			idx = i
 			break
 		}
@@ -98,22 +94,31 @@ func cmdEdit(service, username string, args []string) {
 		fmt.Printf("Entry not found: %s (%s)\n", service, username)
 		return
 	}
-
 	currentPwd, err := crypto.Decrypt(entries[idx].Password, masterPwd)
 	if err != nil {
-		fmt.Println("Error: Wrong Master Password")
+		fmt.Println("Error decrypting Password")
 		return
 	}
 
 	fmt.Printf("\nEditing: %s (%s)\n", service, username)
 	fmt.Print("New username (enter to keep): ")
+
 	var newUser string
+	var newUserEncrypted []byte
+
 	fmt.Scanln(&newUser)
 	if newUser == "" {
-		newUser = entries[idx].Username
+		newUserEncrypted = entries[idx].Username
+	} else {
+		newUserEncrypted, err = crypto.Encrypt(newUser, masterPwd)
+		if err != nil {
+			fmt.Printf("Error encrypting username")
+			return
+		}
 	}
 
 	var newPwd string
+
 	if len(args) >= 4 && args[3] == "-gen" {
 		var passLen, specialCount int
 		fmt.Println("How many characters do you want your password?")
@@ -143,8 +148,8 @@ func cmdEdit(service, username string, args []string) {
 	}
 
 	entries[idx] = storage.Entry{
-		Service:  service,
-		Username: newUser,
+		Service:  entries[idx].Service,
+		Username: newUserEncrypted,
 		Password: encrypted,
 	}
 
@@ -166,7 +171,8 @@ func cmdGet(service, username string) {
 
 	var found []storage.Entry
 	for _, e := range entries {
-		if e.Service == service && e.Username == username {
+		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
+		if dSrvc == service && dUsr == username {
 			found = append(found, e)
 		}
 	}
@@ -182,7 +188,8 @@ func cmdGet(service, username string) {
 			fmt.Println("Error: Wrong Master Password")
 			return
 		}
-		fmt.Printf("\nService:  %s\nUser:   %s\n", e.Service, e.Username)
+		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
+		fmt.Printf("\nService:  %s\nUser:   %s\n", dSrvc, dUsr)
 		copiedPass := clipboard.WriteAll(pwd)
 		if copiedPass != nil {
 			fmt.Println("Your password couldn't be copied")
@@ -194,12 +201,14 @@ func cmdGet(service, username string) {
 	}
 }
 
+// TODO: Make a unique master password by vault
 func cmdList() {
 	entries, err := store.LoadAll()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
+	masterPassword := readPassword("Master Password: ")
 
 	if len(entries) == 0 {
 		fmt.Println("No saved passwords.")
@@ -208,7 +217,8 @@ func cmdList() {
 
 	fmt.Println("\n=== Your services ===")
 	for _, e := range entries {
-		fmt.Printf("• %s (%s)\n", e.Service, e.Username)
+		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPassword)
+		fmt.Printf("• %s (%s)\n", dSrvc, dUsr)
 	}
 }
 
@@ -221,8 +231,10 @@ func cmdDelete(service string, user string) {
 
 	var toDelete []storage.Entry
 	var filtered []storage.Entry
+	masterPwd := readPassword("Master password: ")
 	for _, e := range entries {
-		if e.Service == service && e.Username == user {
+		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
+		if service == dSrvc && user == dUsr {
 			toDelete = append(toDelete, e)
 		} else {
 			filtered = append(filtered, e)
@@ -233,8 +245,6 @@ func cmdDelete(service string, user string) {
 		fmt.Printf("Couldn't find: %s\n", service)
 		return
 	}
-
-	masterPwd := readPassword("Master password: ")
 
 	_, err = crypto.Decrypt(toDelete[0].Password, masterPwd)
 	if err != nil {
