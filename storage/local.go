@@ -1,9 +1,12 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"perkbox/crypto"
 )
 
 type LocalStorage struct {
@@ -39,14 +42,19 @@ func (s *LocalStorage) SaveAll(entries []Entry) error {
 	return os.WriteFile(s.path, data, 0600)
 }
 
-func (s *LocalStorage) FindByService(service string) ([]Entry, error) {
+func (s *LocalStorage) FindByService(service, masterPassword string) ([]Entry, error) {
 	all, err := s.LoadAll()
 	if err != nil {
 		return nil, err
 	}
 	var found []Entry
+	encrypted, err := crypto.Encrypt(service, masterPassword)
+	if err != nil {
+		fmt.Println("Invalid Master Password")
+		os.Exit(1)
+	}
 	for _, entry := range all {
-		if entry.Service == service {
+		if bytes.Equal(entry.Service, encrypted) {
 			found = append(found, entry)
 		}
 	}
