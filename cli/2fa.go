@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"perkbox/crypto"
 	"time"
+
+	"perkbox/crypto"
 
 	"github.com/atotto/clipboard"
 	"github.com/pquerna/otp/totp"
@@ -29,7 +30,6 @@ func set2FA(code string) {
 	}
 	e_service, err := crypto.Encrypt(service, masterPwd)
 	e_username, err := crypto.Encrypt(username, masterPwd)
-
 	if err != nil {
 		fmt.Println("Error encrypting input")
 		os.Exit(1)
