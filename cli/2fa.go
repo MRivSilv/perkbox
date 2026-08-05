@@ -1,11 +1,10 @@
 package cli
 
 import (
-	"bytes"
 	"fmt"
-	"os"
-	"perkbox/crypto"
 	"time"
+
+	"perkbox/crypto"
 
 	"github.com/atotto/clipboard"
 	"github.com/pquerna/otp/totp"
@@ -27,32 +26,22 @@ func set2FA(code string) {
 		fmt.Println("Error:", err)
 		return
 	}
-	e_service, err := crypto.Encrypt(service, masterPwd)
-	e_username, err := crypto.Encrypt(username, masterPwd)
-
+	entr, err := store.FindService(entries, service, username, masterPwd)
 	if err != nil {
-		fmt.Println("Error encrypting input")
-		os.Exit(1)
+		fmt.Println("Service not found")
+		return
 	}
-	for i, e := range entries {
-		if bytes.Equal(e.Service, e_service) && bytes.Equal(e.Username, e_username) {
-			encrypted, err := crypto.Encrypt(code, masterPwd)
-			if err != nil {
-				fmt.Println("Error encrypting 2FA key:", err)
-				return
-			}
-			entries[i].TwoFAKey = encrypted
-			if err := store.SaveAll(entries); err != nil {
-				fmt.Println("Error saving:", err)
-				return
-			}
-			fmt.Printf("2FA key saved for %s (%s)\n", service, username)
-			return
-		}
+	encrypted, err := crypto.Encrypt(code, masterPwd)
+	if err != nil {
+		fmt.Println("Error encrypting 2FA key:", err)
+		return
 	}
-
-	fmt.Println("Entry not found")
-	os.Exit(1)
+	entr.TwoFAKey = encrypted
+	if err := store.SaveAll(entries); err != nil {
+		fmt.Println("Error saving:", err)
+		return
+	}
+	fmt.Printf("2FA key saved for %s (%s)\n", service, username)
 }
 
 func get2fa(service string, username string) {
@@ -63,28 +52,27 @@ func get2fa(service string, username string) {
 		fmt.Println("Error:", err)
 		return
 	}
-	e_service, e_username := crypto.EncryptInput(service, username, masterPwd)
-	for i, e := range entries {
-		if bytes.Equal(e.Service, e_service) && bytes.Equal(e.Username, e_username) {
-			decoded, err := crypto.Decrypt(entries[i].TwoFAKey, masterPwd)
-			if err != nil {
-				fmt.Println("Error decrypting 2FA key: ", err)
-				return
-			}
-			totpCode, err := totp.GenerateCode(decoded, time.Now())
-			if err != nil {
-				fmt.Println("Error generating code: ", err)
-				return
-			}
-			fmt.Println("Your totp is: ", totpCode)
-			copiedCode := clipboard.WriteAll(totpCode)
-			if copiedCode != nil {
-				fmt.Println("Error copying your code")
-				return
-			}
-			fmt.Println("Totp code copied to your clipboard")
-			return
-		}
+	entr, err := store.FindService(entries, service, username, masterPwd)
+	if err != nil {
+		fmt.Println("Service not found")
+		return
 	}
-	fmt.Println("Service or User not found (Check list)")
+	decoded, err := crypto.Decrypt(entr.TwoFAKey, masterPwd)
+	if err != nil {
+		fmt.Println("Error decrypting 2FA key: ", err)
+		return
+	}
+	totpCode, err := totp.GenerateCode(decoded, time.Now())
+	if err != nil {
+		fmt.Println("Error generating code: ", err)
+		return
+	}
+	fmt.Println("Your totp is: ", totpCode)
+	copiedCode := clipboard.WriteAll(totpCode)
+	if copiedCode != nil {
+		fmt.Println("Error copying your code")
+		return
+	}
+	fmt.Println("Totp code copied to your clipboard")
+
 }

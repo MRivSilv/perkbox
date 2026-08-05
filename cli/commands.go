@@ -81,20 +81,12 @@ func cmdEdit(service, username string, args []string) {
 		fmt.Println("Error:", err)
 		return
 	}
-	idx := -1
-	for i, e := range entries {
-		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
-		if dSrvc == service && dUsr == username {
-			idx = i
-			break
-		}
-	}
-
-	if idx == -1 {
-		fmt.Printf("Entry not found: %s (%s)\n", service, username)
+	entr, err := store.FindService(entries, service, username, masterPwd)
+	if err != nil {
+		fmt.Printf("Error finding service")
 		return
 	}
-	currentPwd, err := crypto.Decrypt(entries[idx].Password, masterPwd)
+	currentPwd, err := crypto.Decrypt(entr.Password, masterPwd)
 	if err != nil {
 		fmt.Println("Error decrypting Password")
 		return
@@ -108,7 +100,7 @@ func cmdEdit(service, username string, args []string) {
 
 	fmt.Scanln(&newUser)
 	if newUser == "" {
-		newUserEncrypted = entries[idx].Username
+		newUserEncrypted = entr.Username
 	} else {
 		newUserEncrypted, err = crypto.Encrypt(newUser, masterPwd)
 		if err != nil {
@@ -147,8 +139,8 @@ func cmdEdit(service, username string, args []string) {
 		os.Exit(1)
 	}
 
-	entries[idx] = storage.Entry{
-		Service:  entries[idx].Service,
+	*entr = storage.Entry{
+		Service:  entr.Service,
 		Username: newUserEncrypted,
 		Password: encrypted,
 	}
@@ -169,36 +161,28 @@ func cmdGet(service, username string) {
 		return
 	}
 
-	var found []storage.Entry
-	for _, e := range entries {
-		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
-		if dSrvc == service && dUsr == username {
-			found = append(found, e)
-		}
-	}
-
-	if len(found) == 0 {
-		fmt.Printf("Entry not found: %s (%s)\n", service, username)
+	entr, err := store.FindService(entries, service, username, masterPwd)
+	if err != nil {
+		fmt.Printf("Error finding service")
 		return
 	}
 
-	for _, e := range found {
-		pwd, err := crypto.Decrypt(e.Password, masterPwd)
-		if err != nil {
-			fmt.Println("Error: Wrong Master Password")
-			return
-		}
-		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
-		fmt.Printf("\nService:  %s\nUser:   %s\n", dSrvc, dUsr)
-		copiedPass := clipboard.WriteAll(pwd)
-		if copiedPass != nil {
-			fmt.Println("Your password couldn't be copied")
-			return
-		}
-		fmt.Println("Password copied to your clipboard\nYou have 10 seconds to use it")
-		time.Sleep(10 * time.Second)
-		clipboard.WriteAll("Timeout: Be Quicker")
+	pwd, err := crypto.Decrypt(entr.Password, masterPwd)
+	if err != nil {
+		fmt.Println("Error: Wrong Master Password")
+		return
 	}
+	dSrvc, dUsr := crypto.DecryptOutput(entr.Service, entr.Username, masterPwd)
+	fmt.Printf("\nService:  %s\nUser:   %s\n", dSrvc, dUsr)
+	copiedPass := clipboard.WriteAll(pwd)
+	if copiedPass != nil {
+		fmt.Println("Your password couldn't be copied")
+		return
+	}
+	fmt.Println("Password copied to your clipboard\nYou have 10 seconds to use it")
+	time.Sleep(10 * time.Second)
+	clipboard.WriteAll("Timeout: Be Quicker")
+
 }
 
 // TODO: Make a unique master password by vault

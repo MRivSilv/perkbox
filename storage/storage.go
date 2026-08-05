@@ -10,7 +10,7 @@ type Entry struct {
 type Storage interface {
 	LoadAll() ([]Entry, error)
 	SaveAll(entries []Entry) error
-	FindByService(service, masterPassword string) ([]Entry, error)
+	FindService(all []Entry, service, username, masterPassword string) (*Entry, error)
 }
 
 func GetStorage() Storage {

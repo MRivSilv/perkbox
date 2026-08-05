@@ -1,9 +1,8 @@
 package storage
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 	"perkbox/crypto"
@@ -42,21 +41,12 @@ func (s *LocalStorage) SaveAll(entries []Entry) error {
 	return os.WriteFile(s.path, data, 0600)
 }
 
-func (s *LocalStorage) FindByService(service, masterPassword string) ([]Entry, error) {
-	all, err := s.LoadAll()
-	if err != nil {
-		return nil, err
-	}
-	var found []Entry
-	encrypted, err := crypto.Encrypt(service, masterPassword)
-	if err != nil {
-		fmt.Println("Invalid Master Password")
-		os.Exit(1)
-	}
-	for _, entry := range all {
-		if bytes.Equal(entry.Service, encrypted) {
-			found = append(found, entry)
+func (s *LocalStorage) FindService(all []Entry, service, username, masterPassword string) (*Entry, error) {
+	for i := range all {
+		dSrvc, dUsr := crypto.DecryptOutput(all[i].Service, all[i].Username, masterPassword)
+		if dSrvc == service && dUsr == username {
+			return &all[i], nil
 		}
 	}
-	return found, nil
+	return nil, errors.New("Service not found")
 }
