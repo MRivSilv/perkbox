@@ -1,10 +1,13 @@
+// Package cli: in charge of showing executing commands
 package cli
 
 import (
 	"fmt"
-	"golang.org/x/term"
 	"os"
+
 	"perkbox/storage"
+
+	"golang.org/x/term"
 )
 
 var store storage.Storage

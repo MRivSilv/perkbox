@@ -26,9 +26,9 @@ archives:
 nfpms:
   - id: packages
     package_name: perkbox
-    homepage: https://github.com/anomalyco/opencode
-    maintainer: perkbox maintainers
-    description: perkbox
+    homepage: https://github.com/MRivSilv/perkbox
+    maintainer: MRivSilv
+    description: Open source local, and lightweight password manager
     formats:
       - deb
       - rpm
