@@ -43,7 +43,10 @@ func (s *LocalStorage) SaveAll(entries []Entry) error {
 
 func (s *LocalStorage) FindService(all []Entry, service, username, masterPassword string) (*Entry, error) {
 	for i := range all {
-		dSrvc, dUsr := crypto.DecryptOutput(all[i].Service, all[i].Username, masterPassword)
+		dSrvc, dUsr, err := crypto.DecryptOutput(all[i].Service, all[i].Username, masterPassword)
+		if err != nil {
+			return nil, errors.New("Wrong Master Password")
+		}
 		if dSrvc == service && dUsr == username {
 			return &all[i], nil
 		}

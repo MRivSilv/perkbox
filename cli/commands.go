@@ -169,10 +169,14 @@ func cmdGet(service, username string) {
 
 	pwd, err := crypto.Decrypt(entr.Password, masterPwd)
 	if err != nil {
-		fmt.Println("Error: Wrong Master Password")
+		fmt.Println("ERROR!: Wrong Master Password")
 		return
 	}
-	dSrvc, dUsr := crypto.DecryptOutput(entr.Service, entr.Username, masterPwd)
+	dSrvc, dUsr, err := crypto.DecryptOutput(entr.Service, entr.Username, masterPwd)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	fmt.Printf("\nService:  %s\nUser:   %s\n", dSrvc, dUsr)
 	copiedPass := clipboard.WriteAll(pwd)
 	if copiedPass != nil {
@@ -201,7 +205,10 @@ func cmdList() {
 
 	fmt.Println("\n=== Your services ===")
 	for _, e := range entries {
-		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPassword)
+		dSrvc, dUsr, err := crypto.DecryptOutput(e.Service, e.Username, masterPassword)
+		if err != nil {
+			continue
+		}
 		fmt.Printf("• %s (%s)\n", dSrvc, dUsr)
 	}
 }
@@ -217,7 +224,10 @@ func cmdDelete(service string, user string) {
 	var filtered []storage.Entry
 	masterPwd := readPassword("Master password: ")
 	for _, e := range entries {
-		dSrvc, dUsr := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
+		dSrvc, dUsr, err := crypto.DecryptOutput(e.Service, e.Username, masterPwd)
+		if err != nil {
+			continue
+		}
 		if service == dSrvc && user == dUsr {
 			toDelete = append(toDelete, e)
 		} else {
@@ -232,7 +242,7 @@ func cmdDelete(service string, user string) {
 
 	_, err = crypto.Decrypt(toDelete[0].Password, masterPwd)
 	if err != nil {
-		fmt.Println("Error: Wrong Master Password")
+		fmt.Println(err)
 		return
 	}
 

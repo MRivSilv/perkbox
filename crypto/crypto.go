@@ -102,16 +102,14 @@ func EncryptInput(service, username, masterPassword string) ([]byte, []byte) {
 	return e_service, e_username
 }
 
-func DecryptOutput(service, username []byte, masterPassword string) (string, string) {
-	d_service, err := Decrypt(service, masterPassword)
+func DecryptOutput(service, username []byte, masterPassword string) (string, string, error) {
+	dService, err := Decrypt(service, masterPassword)
 	if err != nil {
-		fmt.Printf("Error decrypting service")
-		return "", ""
+		return "", "", errors.New("Error decrypting service")
 	}
-	d_username, err := Decrypt(username, masterPassword)
+	dUsername, err := Decrypt(username, masterPassword)
 	if err != nil {
-		fmt.Printf("Error decrypting username")
-		return "", ""
+		return "", "", errors.New("Error decrypting username")
 	}
-	return d_service, d_username
+	return dService, dUsername, nil
 }
